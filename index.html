@@ -36,9 +36,20 @@
     color:var(--muted);
     font-size:14px;
   }
-  #editToggle{
-    margin-top:10px; background:none; border:1px solid #22352a; color:var(--muted);
+  .headerBtns{
+    display:flex;
+    gap:8px;
+    justify-content:center;
+    margin-top:10px;
+    flex-wrap:wrap;
+  }
+  #editToggle, #exportBtn{
+    background:none; border:1px solid #22352a; color:var(--muted);
     border-radius:10px; padding:6px 14px; font-size:13px;
+  }
+  #exportBtn{
+    border-color:var(--accent);
+    color:var(--accent);
   }
   .cat-title{
     max-width:520px;
@@ -98,7 +109,10 @@
 <header>
   <h1>🎒 Zaino</h1>
   <p id="appSubtitle">Al mijn apps in één overzicht</p>
-  <button id="editToggle">✏️ Bewerken</button>
+  <div class="headerBtns">
+    <button id="editToggle">✏️ Bewerken</button>
+    <button id="exportBtn">📤 Exporteren</button>
+  </div>
 </header>
 
 <div id="allCategories"></div>
@@ -111,6 +125,9 @@ const TRANSLATIONS = {
     subtitle: 'Al mijn apps in één overzicht',
     edit: '✏️ Bewerken',
     editDone: '✅ Klaar',
+    exportBtn: '📤 Exporteren',
+    exportedMsg: 'Code gekopieerd naar klembord!\n\nPlak dit in DEFAULT_LINKS in je bestand op GitHub (vervang het hele blok tussen de accolades) en commit. Vercel deployt daarna automatisch opnieuw — dan zien ook anderen jouw ingevulde tegels.',
+    exportedFallback: 'Kopiëren lukte niet automatisch. Selecteer en kopieer deze tekst handmatig:',
     footer: 'Jan den Hollander · vrij en niet-commercieel',
     langLabel: 'Taal', langSub: 'NL',
     cat: {
@@ -124,6 +141,9 @@ const TRANSLATIONS = {
     subtitle: 'Tutte le mie app in un unico posto',
     edit: '✏️ Modifica',
     editDone: '✅ Fatto',
+    exportBtn: '📤 Esporta',
+    exportedMsg: 'Codice copiato negli appunti!\n\nIncollalo in DEFAULT_LINKS nel file su GitHub (sostituisci l\'intero blocco tra parentesi graffe) e fai il commit. Vercel farà il redeploy automaticamente.',
+    exportedFallback: 'La copia automatica non è riuscita. Seleziona e copia questo testo manualmente:',
     footer: 'Jan den Hollander · gratuito e non commerciale',
     langLabel: 'Lingua', langSub: 'IT',
     cat: {
@@ -137,6 +157,9 @@ const TRANSLATIONS = {
     subtitle: 'All my apps in one place',
     edit: '✏️ Edit',
     editDone: '✅ Done',
+    exportBtn: '📤 Export',
+    exportedMsg: 'Code copied to clipboard!\n\nPaste this into DEFAULT_LINKS in your file on GitHub (replace the whole block between the curly braces) and commit. Vercel will redeploy automatically.',
+    exportedFallback: 'Automatic copy failed. Select and copy this text manually:',
     footer: 'Jan den Hollander · free and non-commercial',
     langLabel: 'Language', langSub: 'EN',
     cat: {
@@ -250,6 +273,7 @@ function applyTranslations(){
   const t = TRANSLATIONS[getLang()];
   document.getElementById('appSubtitle').textContent = t.subtitle;
   document.getElementById('editToggle').textContent = editMode ? t.editDone : t.edit;
+  document.getElementById('exportBtn').textContent = t.exportBtn;
   document.getElementById('footerText').textContent = t.footer;
 }
 
@@ -338,6 +362,26 @@ document.getElementById('editToggle').addEventListener('click', () => {
   editMode = !editMode;
   applyTranslations();
   renderAll();
+});
+
+document.getElementById('exportBtn').addEventListener('click', () => {
+  const t = TRANSLATIONS[getLang()];
+  const links = loadLinks();
+  const code = 'const DEFAULT_LINKS = ' + JSON.stringify(links, null, 2) + ';';
+
+  const finish = (copied) => {
+    if(copied){
+      alert(t.exportedMsg);
+    } else {
+      prompt(t.exportedFallback, code);
+    }
+  };
+
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(code).then(() => finish(true)).catch(() => finish(false));
+  } else {
+    finish(false);
+  }
 });
 
 applyTranslations();
