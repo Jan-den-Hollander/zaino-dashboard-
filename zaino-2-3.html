@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Zaino</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0f1a14">
+<style>
+  :root{
+    --bg:#0f1a14;
+    --card:#16241c;
+    --accent:#6fbf73;
+    --text:#eef5ef;
+    --muted:#9db3a3;
+  }
+  *{box-sizing:border-box;}
+  html,body{
+    margin:0; padding:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:-apple-system,Roboto,Segoe UI,sans-serif;
+    -webkit-tap-highlight-color:transparent;
+  }
+  header{
+    padding:28px 20px 10px;
+    text-align:center;
+  }
+  header h1{
+    margin:0;
+    font-size:28px;
+    letter-spacing:1px;
+  }
+  header p{
+    margin:6px 0 0;
+    color:var(--muted);
+    font-size:14px;
+  }
+  .headerBtns{
+    display:flex;
+    gap:8px;
+    justify-content:center;
+    margin-top:10px;
+    flex-wrap:wrap;
+  }
+  #editToggle, #exportBtn, #updateBtn{
+    background:none; border:1px solid #22352a; color:var(--muted);
+    border-radius:10px; padding:6px 14px; font-size:13px;
+  }
+  #exportBtn{
+    border-color:var(--accent);
+    color:var(--accent);
+  }
+  #updateBtn{
+    border-color:#e0a458;
+    color:#e0a458;
+  }
+  .cat-title{
+    max-width:520px;
+    margin:26px auto 6px;
+    padding:0 20px;
+    font-size:13px;
+    text-transform:uppercase;
+    letter-spacing:1px;
+    color:var(--accent);
+    font-weight:700;
+  }
+  .grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:14px;
+    padding:0 20px;
+    max-width:520px;
+    margin:0 auto;
+  }
+  .tile{
+    background:var(--card);
+    border:1px solid #22352a;
+    border-radius:18px;
+    padding:20px 12px;
+    text-align:center;
+    text-decoration:none;
+    color:var(--text);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:8px;
+    min-height:104px;
+    justify-content:center;
+    transition:transform .1s ease, background .15s ease;
+  }
+  .tile:active{
+    transform:scale(0.96);
+    background:#1c2e22;
+  }
+  .tile.empty{
+    border-style:dashed;
+    color:var(--muted);
+  }
+  .tile .icon{ font-size:30px; }
+  .tile .label{ font-size:14px; font-weight:600; line-height:1.2; }
+  .tile .sub{ font-size:10.5px; color:var(--muted); line-height:1.2; }
+  footer{
+    text-align:center;
+    color:var(--muted);
+    font-size:11px;
+    padding:30px 20px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🎒 Zaino</h1>
+  <p id="appSubtitle">Al mijn apps in één overzicht</p>
+  <div class="headerBtns">
+    <button id="editToggle">✏️ Bewerken</button>
+    <button id="exportBtn">📤 Exporteren</button>
+    <button id="updateBtn">🔄 Bijwerken</button>
+  </div>
+</header>
+
+<div id="allCategories"></div>
+
+<footer id="footerText">Jan den Hollander · vrij en niet-commercieel</footer>
+
+<script>
+const TRANSLATIONS = {
+  nl: {
+    subtitle: 'Al mijn apps in één overzicht',
+    edit: '✏️ Bewerken',
+    editDone: '✅ Klaar',
+    exportBtn: '📤 Exporteren',
+    exportedMsg: 'Code gekopieerd naar klembord!\n\nPlak dit in DEFAULT_LINKS in je bestand op GitHub (vervang het hele blok tussen de accolades) en commit. Vercel deployt daarna automatisch opnieuw — dan zien ook anderen jouw ingevulde tegels.',
+    exportedFallback: 'Kopiëren lukte niet automatisch. Selecteer en kopieer deze tekst handmatig:',
+    updateBtn: '🔄 Bijwerken',
+    updateConfirm: 'Dit verwijdert je lokale aanpassingen en haalt de nieuwste versie op van GitHub/Vercel. Doorgaan?',
+    footer: 'Jan den Hollander · vrij en niet-commercieel',
+    langLabel: 'Taal', langSub: 'NL',
+    cat: {
+      snel:'📌 Snel', felicit:'🎉 Feliciteren', taalcat:'🗣️ Taal oefenspiegels',
+      spel:'🎲 Spelletjes & geluid', vegetatie:'🌿 Vegetatie onderzoek',
+      serieus:'🛠️ Serieuze hulpmiddelen', reis:'✈️ Op reis',
+      persoonlijk:'🧭 Persoonlijke hulpjes', toekomst:'➕ Toekomst'
+    }
+  },
+  it: {
+    subtitle: 'Tutte le mie app in un unico posto',
+    edit: '✏️ Modifica',
+    editDone: '✅ Fatto',
+    exportBtn: '📤 Esporta',
+    exportedMsg: 'Codice copiato negli appunti!\n\nIncollalo in DEFAULT_LINKS nel file su GitHub (sostituisci l\'intero blocco tra parentesi graffe) e fai il commit. Vercel farà il redeploy automaticamente.',
+    exportedFallback: 'La copia automatica non è riuscita. Seleziona e copia questo testo manualmente:',
+    updateBtn: '🔄 Aggiorna',
+    updateConfirm: 'Questo rimuove le tue modifiche locali e scarica la versione più recente da GitHub/Vercel. Continuare?',
+    footer: 'Jan den Hollander · gratuito e non commerciale',
+    langLabel: 'Lingua', langSub: 'IT',
+    cat: {
+      snel:'📌 Rapido', felicit:'🎉 Auguri', taalcat:'🗣️ Specchi linguistici',
+      spel:'🎲 Giochi & audio', vegetatie:'🌿 Ricerca vegetazione',
+      serieus:'🛠️ Strumenti utili', reis:'✈️ In viaggio',
+      persoonlijk:'🧭 Aiuti personali', toekomst:'➕ Futuro'
+    }
+  },
+  en: {
+    subtitle: 'All my apps in one place',
+    edit: '✏️ Edit',
+    editDone: '✅ Done',
+    exportBtn: '📤 Export',
+    exportedMsg: 'Code copied to clipboard!\n\nPaste this into DEFAULT_LINKS in your file on GitHub (replace the whole block between the curly braces) and commit. Vercel will redeploy automatically.',
+    exportedFallback: 'Automatic copy failed. Select and copy this text manually:',
+    updateBtn: '🔄 Update',
+    updateConfirm: 'This will discard your local edits and fetch the latest version from GitHub/Vercel. Continue?',
+    footer: 'Jan den Hollander · free and non-commercial',
+    langLabel: 'Language', langSub: 'EN',
+    cat: {
+      snel:'📌 Quick', felicit:'🎉 Greetings', taalcat:'🗣️ Language mirrors',
+      spel:'🎲 Games & sound', vegetatie:'🌿 Vegetation research',
+      serieus:'🛠️ Useful tools', reis:'✈️ Travel',
+      persoonlijk:'🧭 Personal helpers', toekomst:'➕ Future'
+    }
+  }
+};
+const LANG_ORDER = ['nl', 'it', 'en'];
+
+function getLang(){
+  return localStorage.getItem('zainoLang') || 'nl';
+}
+
+const CATEGORIES = [
+  { key: 'snel', ids: ['zainetto','sammy','buonanotte','taal'] },
+  { key: 'felicit', ids: ['auguri','tantissimi','verjaardagnl','feeen','laureato','moederdag','sinterklaas','befana'] },
+  { key: 'taalcat', ids: ['catalaans','spaans','italiaans','duits','engels','nederlands','frans'] },
+  { key: 'spel', ids: ['giocoromano','contacten','jukebox','gioco'] },
+  { key: 'vegetatie', ids: ['berminventarisatie','rivelazioneverde'] },
+  { key: 'serieus', ids: ['audiolibri','scam','debunkers','morse','kompas','vogelverklikker','rivelatore','extra3'] },
+  { key: 'reis', ids: ['cicerone','romegids','triptorome','ricette','reisdagboek','boekenkast'] },
+  { key: 'persoonlijk', ids: ['cresce','animagiovani','colloquio','altavoce','lucaitaliaans','vislog'] },
+  { key: 'toekomst', ids: ['extra1','extra2','extra4','extra5','extra6','extra7','extra8','extra9','extra10','extra11','extra12','extra13'] }
+];
+
+const DEFAULT_LINKS = {
+  zainetto:      { icon:'🎒', label:'Zainetto',        sub:'Verzameling apps, dashboard veloce',            url:'https://zainetto-33ll.vercel.app/' },
+  sammy:         { icon:'💶', label:'Sammy',            sub:'Financiële regelneef, consulente finanziario',  url:'https://sammy-rust.vercel.app/' },
+  buonanotte:    { icon:'🌙', label:'Buonanotte',       sub:'Verhaal + mp3, Fiabe italiane · voce Gemini AI', url:'https://buonanotte.vercel.app/' },
+
+  auguri:        { icon:'🎈', label:'Auguri Speciale',  sub:'Algemeen feliciteren, genere auguri',           url:'https://auguri-speciale-a-te.vercel.app/' },
+  tantissimi:    { icon:'🎊', label:'Tantissimi Auguri',sub:'Edizione italiano',                             url:'https://tantissimi-auguri-a-te.vercel.app/' },
+  verjaardagnl:  { icon:'🎂', label:'Verjaardag NL',    sub:'Nederlands, Edizione Olandese',                 url:'https://test-tts-tedesco-afby.vercel.app/' },
+  feeen:         { icon:'🧚', label:'Feeënspiegel',     sub:'Verjaardag kinderen, auguri per bambini',       url:'https://specchio-delle-fate.vercel.app' },
+  laureato:      { icon:'🎓', label:'Laureato',         sub:'Geslaagd (IT) auguri per il laureato',          url:'https://specchio-del-laureato.vercel.app/' },
+  moederdag:     { icon:'💐', label:'Moederdag',        sub:'Feliciteren giorno della mamma',                url:'https://moederdag.vercel.app/' },
+  sinterklaas:   { icon:'🎅', label:'Sinterklaas',      sub:'Santa Nicola ( non babbo natale)',              url:'https://sinterklaasspiegel.vercel.app/' },
+  befana:        { icon:'🧙', label:'Befana',           sub:'Feliciteren',                                   url:'https://befana.vercel.app/' },
+
+  catalaans:     { icon:'🪞🗣️', label:'Catalaans, catalano', sub:'Taalspiegel, specchio linguistico',        url:'https://rodionrask.vercel.app/' },
+  spaans:        { icon:'🪞🗣️', label:'Spaans, spagnolo',    sub:'Taalspiegel, specchio linguistico',        url:'https://spechio-espanol.vercel.app/' },
+  italiaans:     { icon:'🪞🗣️', label:'Italiaans, Italiano', sub:'Taalspiegel, specchio linguistico',        url:'https://specchio-magico-shadowing-kdv7.vercel.app/' },
+  duits:         { icon:'🪞🗣️', label:'Duits,Tedesco',       sub:'Taalspiegel, specchio linguistico',        url:'https://zauberspiegel.vercel.app/' },
+  engels:        { icon:'🪞🗣️', label:'Engels, Inglese',     sub:'Taalspiegel, specchio linguistico',        url:'https://magic-mirror-two-tawny.vercel.app/' },
+  nederlands:    { icon:'🪞🗣️', label:'Nederlands,Olandese', sub:'Taalspiegel, specchio linguistico',        url:'https://de-taal-toverspiegel.vercel.app/' },
+  frans:         { icon:'🪞🗣️', label:'Frans, Francese',     sub:'Taalspiegel,specchio linguistico',         url:'https://specchio-francais.vercel.app/' },
+
+  giocoromano:   { icon:'🏛️', label:'Gioco Romano',     sub:'Herontdekt Romeins spel, Un gioco romano riscoperto', url:'https://jan-den-hollander.github.io/giocoromano/' },
+  contacten:     { icon:'📇', label:'Hoeveel, Quanti-Contatti', sub:'Hoeveel & waar i vostri contatti su soci', url:'https://jan-den-hollander.github.io/quanti-contatti-hai' },
+  jukebox:       { icon:'🎵', label:'Jukebox',          sub:'Je muziekmap afspelen,Riproduzione della cartella musicale', url:'https://jan-den-hollander.github.io/jukebox/' },
+  gioco:         { icon:'🔊', label:'Geluidspel ,Gioco Gioco sonoro', sub:'Geluidsspel slechtzienden, Gioco sonoro per ipovedenti', url:'https://jan-den-hollander.github.io/gioco/' },
+
+  berminventarisatie:{ icon:'🌾', label:'Berminventarisatie (nl)', sub:'Vegetatie onderzoek, Studio della vegetazione', url:'https://jan-den-hollander.github.io/berminventarisatie/' },
+  rivelazioneverde:  { icon:'🌿', label:'Rivelazione Verde (it)',  sub:'Vegetatie-onderzoek, Studio della vegetazione', url:'https://jan-den-hollander.github.io/rivelazione-verde/' },
+
+  audiolibri:    { icon:'🎧', label:'Luisterboeken, Audiolibri', sub:'Audioboeken kopiëren, Copiare gli audiolibri', url:'https://jan-den-hollander.github.io/audiolibri' },
+  scam:          { icon:'🛡️', label:'Scam Detector',    sub:'Fraude check, Controllo antifrode',             url:'https://scam-detector-three-blond.vercel.app' },
+  debunkers:     { icon:'🔎', label:'Debunkers',        sub:'Influencers ontkrachten,Smentire gli influencer', url:'https://jan-den-hollander.github.io/debunkers-/' },
+  morse:         { icon:'📡', label:'Morse',            sub:'SOS seinen of ontvangen, Inviare o ricevere segnali SOS', url:'https://jan-den-hollander.github.io/sos-morsecode/' },
+  kompas:        { icon:'🧭', label:'Richtingwijzer',   sub:'Richtingwijzer, Indicazioni',                   url:'https://jan-den-hollander.github.io/bussola-del-freccia-/' },
+  vogelverklikker:{ icon:'🐦', label:'verklikker, spia attenzione', sub:'Bewegingsdetectie NL, Rilevamento del movimento NL', url:'https://jan-den-hollander.github.io/vogelverklikker/' },
+  rivelatore:    { icon:'🐦', label:'Rivelatore',       sub:'Rilevamento del movimento IT, Bewegingsdetectie IT', url:'https://rivelatore.vercel.app/' },
+  extra3:        { icon:'🪄🧩🌻', label:'tegelwippen, altalene a piastrelle', sub:'Hoe in te delen / Come organizzarsi', url:'https://tegelwippen.vercel.app/' },
+
+  cicerone:      { icon:'🏺', label:'Cicerone IT',      sub:'Reisgids, Guida turistica',                     url:'https://jan-den-hollander.github.io/cicerone-it/' },
+  romegids:      { icon:'🏛️', label:'Romegids Guida turistica di Roma', sub:'Reisgids Guida turistica',      url:'https://jan-den-hollander.github.io/romegids/' },
+  triptorome:    { icon:'✈️', label:'Trip to Rome Viaggio a Roma', sub:'IT / NL',                            url:'https://jan-den-hollander.github.io/trip-to-rome-it-nl/' },
+  ricette:       { icon:'🍝', label:'Recepten Ricette', sub:'Recepten onderweg noteren, Annotare le ricette mentre si è in giro', url:'https://jan-den-hollander.github.io/ricette-/' },
+  reisdagboek:   { icon:'📔', label:'Reisdagboek, Diario di viaggio', sub:'Diario di viaggio',                url:'https://jan-den-hollander.github.io/reisdagboek-diario-di-viagio/' },
+  boekenkast:    { icon:'📚', label:'Boekenkast, Libreria', sub:'Catalogus, geen dubbels, Catalogo, senza duplicati', url:'https://jan-den-hollander.github.io/boekenkast/' },
+
+  cresce:        { icon:'🌱', label:'Cresce Persoonlijke groei', sub:'Zelfontwikkeltips, Consigli per lo sviluppo personale', url:'https://jan-den-hollander.github.io/Cresce/' },
+  animagiovani:  { icon:'🌟', label:"Specchio dell'Anima, Spiegel van de ziel", sub:'Jeugd advies (IT), Consulenza per i giovani (IT)', url:'https://specchio-dell-anima.vercel.app/' },
+  colloquio:     { icon:'💼', label:'Aiuto Colloquio, Hulp bij het sollicitatiegesprek', sub:'Sollicitatiehulp, Hulp bij het sollicitatiegesprek', url:'https://jan-den-hollander.github.io/aiuto-colloquio-/' },
+  altavoce:      { icon:'🔈', label:'Altavoce, voorlezen', sub:'PDF / tekst voorlezen, Lettura ad alta voce di PDF / testo', url:'https://jan-den-hollander.github.io/altavoce/' },
+  lucaitaliaans: { icon:'🇮🇹', label:"Luca specchio (Italiaans)", sub:'Editie gelimiteerd',                   url:'https://specchio-della-anima-edizione-limit.vercel.app/' },
+  vislog:        { icon:'🎣', label:'VisLog',           sub:'Vangsten loggen, Registrare le catture',        url:'https://vis-log-pesce.vercel.app/' },
+
+  extra1:        { icon:'🪴', label:'balkonwijzer, indicatore da balcone', sub:'Hoe in te richten/Come organizzarsi', url:'https://balkonwijzer.vercel.app/' },
+  extra2:        { icon:'🌻🪄', label:'border-wijzer, Guida alle piante da aiuola', sub:'Come organizzarsi / hoe in te richten', url:'https://borderwijzer.vercel.app/' },
+  extra4:        { icon:'🦉📖', label:'Beslisboom-decision tree', sub:"AI tool vinden / trovarsi l'IA giusta", url:'https://llm-decision-tree-nl-it.vercel.app/' },
+  extra5:        { icon:'💰🌳', label:'Boomwaarde bepaling- Valutazione degli alberi', sub:'Schade vaststelling/Accertamento del danno', url:'https://boomwaardebepaling.vercel.app/' },
+  extra6:        { icon:'🍃CO²', label:'CO² waarderen bij bomen', sub:"het CO² argument/l'argomento della CO²", url:'https://co2-boomwaarde.vercel.app/' },
+  extra7:        { icon:'🐝🪶🐾', label:'Trovarci/zoeken', sub:'zoek de bron/trova la fonte', url:'https://trovarci.vercel.app/' },
+  extra8:        { icon:'📣⌨️', label:'doppiaggio ondertitelen', sub:'Tik op bewerken om aan te vullen', url:'https://doppiaggio.vercel.app/' },
+  extra9:        { icon:'🎤📣 📖', label:'Audioscriptie', sub:'film/video audio scriptie', url:'https://audioscriptie.vercel.app/' },
+  extra10:       { icon:'🫂', label:'Nexus', sub:'Find your social link in steps', url:'https://nexus-dun-five.vercel.app/' },
+  extra11:       { icon:'➕', label:'Nieuw', sub:'Tik op bewerken om aan te vullen', url:'' },
+  extra12:       { icon:'➕', label:'Nieuw', sub:'Tik op bewerken om aan te vullen', url:'' },
+  extra13:       { icon:'➕', label:'Nieuw', sub:'Tik op bewerken om aan te vullen', url:'' }
+};
+
+let editMode = false;
+
+function loadLinks(){
+  try{
+    const saved = localStorage.getItem('zainoLinks');
+    if(saved) return JSON.parse(saved);
+  }catch(e){}
+  return DEFAULT_LINKS;
+}
+
+function saveLinks(links){
+  localStorage.setItem('zainoLinks', JSON.stringify(links));
+}
+
+function applyTranslations(){
+  const t = TRANSLATIONS[getLang()];
+  document.getElementById('appSubtitle').textContent = t.subtitle;
+  document.getElementById('editToggle').textContent = editMode ? t.editDone : t.edit;
+  document.getElementById('exportBtn').textContent = t.exportBtn;
+  document.getElementById('updateBtn').textContent = t.updateBtn;
+  document.getElementById('footerText').textContent = t.footer;
+}
+
+function renderAll(){
+  const links = loadLinks();
+  const lang = getLang();
+  const t = TRANSLATIONS[lang];
+  const container = document.getElementById('allCategories');
+  container.innerHTML = '';
+
+  CATEGORIES.forEach(cat => {
+    const h2 = document.createElement('div');
+    h2.className = 'cat-title';
+    h2.textContent = t.cat[cat.key];
+    container.appendChild(h2);
+
+    const grid = document.createElement('div');
+    grid.className = 'grid';
+
+    cat.ids.forEach(id => {
+      if(id === 'taal'){
+        const langBtn = document.createElement('button');
+        langBtn.className = 'tile';
+        langBtn.style.border = '1px solid #22352a';
+        langBtn.style.cursor = 'pointer';
+        langBtn.innerHTML = `
+          <div class="icon">🌐</div>
+          <div class="label">${t.langLabel}</div>
+          <div class="sub">${t.langSub}</div>
+        `;
+        langBtn.addEventListener('click', () => {
+          const next = LANG_ORDER[(LANG_ORDER.indexOf(getLang()) + 1) % LANG_ORDER.length];
+          localStorage.setItem('zainoLang', next);
+          applyTranslations();
+          renderAll();
+        });
+        grid.appendChild(langBtn);
+        return;
+      }
+
+      const link = links[id] || DEFAULT_LINKS[id];
+      if(!link) return;
+
+      const isEmpty = !link.url;
+      const el = document.createElement(editMode || isEmpty ? 'button' : 'a');
+      el.className = 'tile' + (isEmpty && !editMode ? ' empty' : '');
+      if(!editMode && !isEmpty){
+        el.href = link.url;
+        el.target = '_blank';
+      } else {
+        el.style.cursor = 'pointer';
+        if(editMode){ el.style.border = '1px dashed var(--accent)'; }
+      }
+      el.innerHTML = `
+        <div class="icon">${link.icon}</div>
+        <div class="label">${link.label}${editMode ? ' ✏️' : ''}</div>
+        <div class="sub">${editMode ? (link.url || '(nog geen link)') : link.sub}</div>
+      `;
+      if(editMode || isEmpty){
+        el.addEventListener('click', () => {
+          const newLabel = prompt('Naam voor deze tegel:', link.label);
+          if(newLabel === null) return;
+          const newIcon = prompt('Icoon (emoji):', link.icon) || link.icon;
+          const newUrl = prompt('Link (URL):', link.url);
+          if(newUrl === null) return;
+
+          const all = loadLinks();
+          all[id] = {
+            icon: newIcon.trim() || link.icon,
+            label: newLabel.trim() || link.label,
+            sub: link.sub,
+            url: newUrl.trim()
+          };
+          saveLinks(all);
+          renderAll();
+        });
+      }
+      grid.appendChild(el);
+    });
+
+    container.appendChild(grid);
+  });
+}
+
+document.getElementById('editToggle').addEventListener('click', () => {
+  editMode = !editMode;
+  applyTranslations();
+  renderAll();
+});
+
+document.getElementById('exportBtn').addEventListener('click', () => {
+  const t = TRANSLATIONS[getLang()];
+  const links = loadLinks();
+  const code = 'const DEFAULT_LINKS = ' + JSON.stringify(links, null, 2) + ';';
+
+  const finish = (copied) => {
+    if(copied){
+      alert(t.exportedMsg);
+    } else {
+      prompt(t.exportedFallback, code);
+    }
+  };
+
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(code).then(() => finish(true)).catch(() => finish(false));
+  } else {
+    finish(false);
+  }
+});
+
+document.getElementById('updateBtn').addEventListener('click', () => {
+  const t = TRANSLATIONS[getLang()];
+  if(confirm(t.updateConfirm)){
+    localStorage.removeItem('zainoLinks');
+    // cache-busting query param dwingt de browser de pagina vers op te halen
+    // in plaats van een gecachte kopie te gebruiken
+    window.location.href = window.location.pathname + '?refresh=' + Date.now();
+  }
+});
+
+applyTranslations();
+renderAll();
+</script>
+
+</body>
+</html>
